@@ -1,3 +1,13 @@
+/**
+ * Comments Component - YourTube 2.0
+ * 
+ * Features Implemented:
+ * 1. 🌐 Google Translate Integration (Real-time translation to English)
+ * 2. 👍/👎 Likes & Dislikes (Interactive comment evaluation)
+ * 3. 🛡️ Auto-Moderation (Automatic deletion upon receiving 2+ dislikes)
+ * 4. 📍 Geolocation & City Detection (Detects and displays user's city via IP lookup)
+ * 5. 🚫 Spam & Special Character Blocking (Filters out suspicious characters @, #, $, %, ^, &, *)
+ */
 import React, { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Textarea } from "./ui/textarea";
