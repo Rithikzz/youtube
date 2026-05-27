@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+you_tube2.0/server/node_modules/
+you_tube2.0/yourtube/node_modules/
+
+# Next.js build output
+.next/
+you_tube2.0/yourtube/.next/
+
+# Environment files
+.env
+.env.local
+you_tube2.0/server/.env
+you_tube2.0/yourtube/.env.local
+
+# Multer uploads
+uploads/
+you_tube2.0/server/uploads/
+
+# OS/System files
+.DS_Store
+Thumbs.db
