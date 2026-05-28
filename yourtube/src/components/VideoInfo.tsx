@@ -13,7 +13,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
-import PaymentDialogue from "./PaymentDialogue";
+import Link from "next/link";
 
 const VideoInfo = ({ video }: any) => {
   const [likes, setlikes] = useState(video.Like || 0);
@@ -23,7 +23,6 @@ const VideoInfo = ({ video }: any) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const { user, login } = useUser();
   const [isWatchLater, setIsWatchLater] = useState(false);
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
   // const user: any = {
   //   id: "1",
@@ -146,54 +145,6 @@ const VideoInfo = ({ video }: any) => {
     }
   };
 
-  const handleUpgrade = async () => {
-    if (!user) return alert("Please login first");
-    try {
-      const res = await axiosInstance.post("/payment/create-order");
-      
-      if (res.data.isMock) {
-        setIsPaymentOpen(true);
-        return;
-      }
-
-      const options = {
-        key: "rzp_test_1234567890", // Test key
-        amount: res.data.amount,
-        currency: res.data.currency,
-        name: "YourTube Premium",
-        description: "Unlimited Downloads",
-        order_id: res.data.id,
-        handler: async function (response: any) {
-          try {
-            const verifyRes = await axiosInstance.post("/payment/verify", {
-              ...response,
-              userId: user._id,
-            });
-            if (verifyRes.data.user) {
-              login(verifyRes.data.user);
-              alert("Upgraded to Premium successfully!");
-            }
-          } catch (err) {
-            console.log(err);
-            alert("Payment verification failed");
-          }
-        },
-        prefill: {
-          name: user.name,
-          email: user.email,
-        },
-        theme: {
-          color: "#eab308",
-        },
-      };
-      const rzp1 = new (window as any).Razorpay(options);
-      rzp1.open();
-    } catch (error) {
-      console.log(error);
-      alert("Failed to initiate payment");
-    }
-  };
-
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">{video.videotitle}</h1>
@@ -268,15 +219,16 @@ const VideoInfo = ({ video }: any) => {
             Download
           </Button>
           {!user?.isPremium && (
-            <Button
-              variant="default"
-              size="sm"
-              className="bg-yellow-500 hover:bg-yellow-600 text-black rounded-full font-semibold"
-              onClick={handleUpgrade}
-            >
-              <Crown className="w-4 h-4 mr-2" />
-              Premium
-            </Button>
+            <Link href="/upgrade">
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-yellow-500 hover:bg-yellow-600 text-black rounded-full font-semibold"
+              >
+                <Crown className="w-4 h-4 mr-2" />
+                Premium
+              </Button>
+            </Link>
           )}
           <Button
             variant="ghost"
@@ -307,14 +259,6 @@ const VideoInfo = ({ video }: any) => {
           {showFullDescription ? "Show less" : "Show more"}
         </Button>
       </div>
-      {user && (
-        <PaymentDialogue
-          isopen={isPaymentOpen}
-          onclose={() => setIsPaymentOpen(false)}
-          user={user}
-          onsuccess={(updatedUser: any) => login(updatedUser)}
-        />
-      )}
     </div>
   );
 };

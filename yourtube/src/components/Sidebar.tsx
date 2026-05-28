@@ -21,55 +21,8 @@ const Sidebar = () => {
   const { user, login } = useUser();
 
   const [isdialogeopen, setisdialogeopen] = useState(false);
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  
-  const handleUpgrade = async () => {
-    if (!user) return alert("Please login first");
-    try {
-      const res = await axiosInstance.post("/payment/create-order");
-      
-      if (res.data.isMock) {
-        setIsPaymentOpen(true);
-        return;
-      }
 
-      const options = {
-        key: "rzp_test_1234567890", // Test key
-        amount: res.data.amount,
-        currency: res.data.currency,
-        name: "YourTube Premium",
-        description: "Unlimited Downloads",
-        order_id: res.data.id,
-        handler: async function (response: any) {
-          try {
-            const verifyRes = await axiosInstance.post("/payment/verify", {
-              ...response,
-              userId: user._id,
-            });
-            if (verifyRes.data.user) {
-              login(verifyRes.data.user);
-              alert("Upgraded to Premium successfully!");
-            }
-          } catch (err) {
-            console.log(err);
-            alert("Payment verification failed");
-          }
-        },
-        prefill: {
-          name: user.name,
-          email: user.email,
-        },
-        theme: {
-          color: "#eab308",
-        },
-      };
-      const rzp1 = new (window as any).Razorpay(options);
-      rzp1.open();
-    } catch (error) {
-      console.log(error);
-      alert("Failed to initiate payment");
-    }
-  };
+
   return (
     <aside className="w-64 bg-white  border-r min-h-screen p-2">
       <nav className="space-y-1">
@@ -140,15 +93,16 @@ const Sidebar = () => {
               )}
               {!user?.isPremium && (
                 <div className="px-2 py-1.5 mt-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black flex items-center justify-center font-semibold"
-                    onClick={handleUpgrade}
-                  >
-                    <Crown className="w-4 h-4 mr-2" />
-                    Premium
-                  </Button>
+                  <Link href="/upgrade">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="w-full bg-yellow-500 hover:bg-yellow-600 text-black flex items-center justify-center font-semibold"
+                    >
+                      <Crown className="w-4 h-4 mr-2" />
+                      Premium
+                    </Button>
+                  </Link>
                 </div>
               )}
             </div>
@@ -160,14 +114,6 @@ const Sidebar = () => {
         onclose={() => setisdialogeopen(false)}
         mode="create"
       />
-      {user && (
-        <PaymentDialogue
-          isopen={isPaymentOpen}
-          onclose={() => setIsPaymentOpen(false)}
-          user={user}
-          onsuccess={(updatedUser: any) => login(updatedUser)}
-        />
-      )}
     </aside>
   );
 };

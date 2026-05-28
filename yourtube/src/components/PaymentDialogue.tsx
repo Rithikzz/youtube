@@ -12,7 +12,7 @@ import { Input } from "./ui/input";
 import { Crown, Sparkles, ShieldCheck, Phone, CheckCircle, RefreshCw, Clock } from "lucide-react";
 import axiosInstance from "@/lib/axiosinstance";
 
-const PaymentDialogue = ({ isopen, onclose, user, onsuccess }: any) => {
+const PaymentDialogue = ({ isopen, onclose, user, onsuccess, plan }: any) => {
   const [step, setStep] = useState(1); // 1: Phone Input, 2: OTP Verification
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -22,6 +22,22 @@ const PaymentDialogue = ({ isopen, onclose, user, onsuccess }: any) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpNotification, setOtpNotification] = useState("");
   const [error, setError] = useState("");
+
+  // Plan Details dynamic helper
+  const getPlanDetails = () => {
+    switch (plan) {
+      case "bronze":
+        return { title: "Bronze Plan", price: "₹10.00", limit: "7 minutes", color: "text-amber-600" };
+      case "silver":
+        return { title: "Silver Plan", price: "₹50.00", limit: "10 minutes", color: "text-zinc-300" };
+      case "gold":
+        return { title: "Gold Plan", price: "₹100.00", limit: "Unlimited Watch Time", color: "text-yellow-500" };
+      default:
+        return { title: "Premium Lifetime", price: "₹199.00", limit: "Unlimited Watch Time", color: "text-yellow-500" };
+    }
+  };
+
+  const planDetails = getPlanDetails();
 
   // Countdown timer for 1-minute OTP validity
   useEffect(() => {
@@ -82,11 +98,12 @@ const PaymentDialogue = ({ isopen, onclose, user, onsuccess }: any) => {
         razorpay_payment_id: `pay_mock_${Date.now()}`,
         razorpay_signature: "mock_signature",
         userId: user._id,
+        plan: plan || "gold",
       });
 
       if (response.data.user) {
         onsuccess(response.data.user);
-        alert("Payment & OTP Verified Successfully! You are now a Premium user.");
+        alert(`Payment & OTP Verified Successfully! Activated ${planDetails.title}.`);
         // Reset fields
         setStep(1);
         setPhoneNumber("");
@@ -122,7 +139,7 @@ const PaymentDialogue = ({ isopen, onclose, user, onsuccess }: any) => {
             <Crown className="w-6 h-6 text-yellow-500 animate-pulse" />
           </div>
           <DialogTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent">
-            YourTube 2.0 Premium
+            Upgrade Plan Checkout
           </DialogTitle>
           <p className="text-xs text-zinc-400 mt-1">
             Simulated Checkout with SMS OTP Verification
@@ -139,11 +156,11 @@ const PaymentDialogue = ({ isopen, onclose, user, onsuccess }: any) => {
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 space-y-2">
             <div className="flex justify-between items-center text-xs text-zinc-400">
               <span>Subscription Plan</span>
-              <span className="font-semibold text-yellow-500">Premium Lifetime</span>
+              <span className={`font-semibold ${planDetails.color}`}>{planDetails.title}</span>
             </div>
             <div className="flex justify-between items-center text-xs text-zinc-400">
               <span>Amount</span>
-              <span className="font-bold text-white">₹199.00</span>
+              <span className="font-bold text-white">{planDetails.price}</span>
             </div>
           </div>
 
@@ -239,7 +256,7 @@ const PaymentDialogue = ({ isopen, onclose, user, onsuccess }: any) => {
                 disabled={isSubmitting || otp.length !== 6}
                 className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold text-xs border-none shadow-md shadow-yellow-500/10"
               >
-                {isSubmitting ? "Verifying..." : "Confirm & Pay (₹199)"}
+                {isSubmitting ? "Verifying..." : `Confirm & Pay (${planDetails.price})`}
               </Button>
             </div>
           )}

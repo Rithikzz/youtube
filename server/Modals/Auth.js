@@ -9,6 +9,18 @@ const userschema = mongoose.Schema({
   isPremium: { type: Boolean, default: false },
   dailyDownloads: { type: Number, default: 0 },
   lastDownloadDate: { type: Date },
+  plan: {
+    type: String,
+    enum: ["free", "bronze", "silver", "gold"],
+    default: "free"
+  },
+  watchLimit: {
+    type: Number,
+    default: 5
+  },
+  premiumActivatedAt: {
+    type: Date
+  }
 });
 
 export default mongoose.model("user", userschema);
