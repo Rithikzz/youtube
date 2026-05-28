@@ -5,6 +5,7 @@ import { provider, auth } from "./firebase";
 import axiosInstance from "./axiosinstance";
 import { useEffect, useContext } from "react";
 import OtpDialogue from "@/components/OtpDialogue";
+import SignInDialogue from "@/components/SignInDialogue";
 
 const UserContext = createContext();
 
@@ -17,6 +18,7 @@ export const UserProvider = ({ children }) => {
   const [authOtpMethod, setAuthOtpMethod] = useState("");
   const [authEmail, setAuthEmail] = useState("");
   const [mockOtp, setMockOtp] = useState("");
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
 
   const applyTheme = (userdata) => {
     if (!userdata) {
@@ -128,7 +130,7 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, login, logout, handlegooglesignin }}>
+    <UserContext.Provider value={{ user, login, logout, handlegooglesignin, isSignInOpen, setIsSignInOpen }}>
       {children}
       <OtpDialogue
         isopen={isOtpOpen}
@@ -137,6 +139,11 @@ export const UserProvider = ({ children }) => {
         otpMethod={authOtpMethod}
         email={authEmail}
         mockOtp={mockOtp}
+        onLoginSuccess={(finalUser) => login(finalUser)}
+      />
+      <SignInDialogue
+        isopen={isSignInOpen}
+        onclose={() => setIsSignInOpen(false)}
         onLoginSuccess={(finalUser) => login(finalUser)}
       />
     </UserContext.Provider>

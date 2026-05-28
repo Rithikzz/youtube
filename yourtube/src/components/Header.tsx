@@ -16,7 +16,7 @@ import { useRouter } from "next/router";
 import { useUser } from "@/lib/AuthContext";
 
 const Header = () => {
-  const { user, logout, handlegooglesignin } = useUser();
+  const { user, logout, handlegooglesignin, setIsSignInOpen } = useUser();
   // const user: any = {
   //   id: "1",
   //   name: "John Doe",
@@ -133,7 +133,7 @@ const Header = () => {
           <>
             <Button
               className="flex items-center gap-2"
-              onClick={handlegooglesignin}
+              onClick={() => setIsSignInOpen(true)}
             >
               <User className="w-4 h-4" />
               Sign in
