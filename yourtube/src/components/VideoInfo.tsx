@@ -8,10 +8,12 @@ import {
   Share,
   ThumbsDown,
   ThumbsUp,
+  Crown
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
+import PaymentDialogue from "./PaymentDialogue";
 
 const VideoInfo = ({ video }: any) => {
   const [likes, setlikes] = useState(video.Like || 0);
@@ -19,8 +21,9 @@ const VideoInfo = ({ video }: any) => {
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
-  const { user } = useUser();
+  const { user, login } = useUser();
   const [isWatchLater, setIsWatchLater] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
   // const user: any = {
   //   id: "1",
@@ -111,6 +114,86 @@ const VideoInfo = ({ video }: any) => {
       console.log(error);
     }
   };
+
+  const handleDownloadBtn = async () => {
+    if (!user) return alert("Please login to download.");
+    try {
+      const res = await axiosInstance.post("/download/request", {
+        userId: user._id,
+        videoId: video._id,
+      });
+
+      if (res.data.user) {
+        login(res.data.user);
+      }
+
+      const downloadUrl = `http://localhost:5000/${video.filepath}`;
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = video.filename || "video.mp4";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      alert("Download started!");
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        alert("Free limit exceeded. Upgrade to Premium for unlimited downloads.");
+      } else {
+        console.log(error);
+        alert("Download failed.");
+      }
+    }
+  };
+
+  const handleUpgrade = async () => {
+    if (!user) return alert("Please login first");
+    try {
+      const res = await axiosInstance.post("/payment/create-order");
+      
+      if (res.data.isMock) {
+        setIsPaymentOpen(true);
+        return;
+      }
+
+      const options = {
+        key: "rzp_test_1234567890", // Test key
+        amount: res.data.amount,
+        currency: res.data.currency,
+        name: "YourTube Premium",
+        description: "Unlimited Downloads",
+        order_id: res.data.id,
+        handler: async function (response: any) {
+          try {
+            const verifyRes = await axiosInstance.post("/payment/verify", {
+              ...response,
+              userId: user._id,
+            });
+            if (verifyRes.data.user) {
+              login(verifyRes.data.user);
+              alert("Upgraded to Premium successfully!");
+            }
+          } catch (err) {
+            console.log(err);
+            alert("Payment verification failed");
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email,
+        },
+        theme: {
+          color: "#eab308",
+        },
+      };
+      const rzp1 = new (window as any).Razorpay(options);
+      rzp1.open();
+    } catch (error) {
+      console.log(error);
+      alert("Failed to initiate payment");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">{video.videotitle}</h1>
@@ -179,10 +262,22 @@ const VideoInfo = ({ video }: any) => {
             variant="ghost"
             size="sm"
             className="bg-gray-100 rounded-full"
+            onClick={handleDownloadBtn}
           >
             <Download className="w-5 h-5 mr-2" />
             Download
           </Button>
+          {!user?.isPremium && (
+            <Button
+              variant="default"
+              size="sm"
+              className="bg-yellow-500 hover:bg-yellow-600 text-black rounded-full font-semibold"
+              onClick={handleUpgrade}
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Premium
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -212,6 +307,14 @@ const VideoInfo = ({ video }: any) => {
           {showFullDescription ? "Show less" : "Show more"}
         </Button>
       </div>
+      {user && (
+        <PaymentDialogue
+          isopen={isPaymentOpen}
+          onclose={() => setIsPaymentOpen(false)}
+          user={user}
+          onsuccess={(updatedUser: any) => login(updatedUser)}
+        />
+      )}
     </div>
   );
 };
