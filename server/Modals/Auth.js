@@ -20,6 +20,23 @@ const userschema = mongoose.Schema({
   },
   premiumActivatedAt: {
     type: Date
+  },
+  state: {
+    type: String
+  },
+  city: {
+    type: String
+  },
+  themePreference: {
+    type: String,
+    enum: ["light", "dark"],
+    default: "dark"
+  },
+  otp: {
+    type: String
+  },
+  otpExpires: {
+    type: Date
   }
 });
 

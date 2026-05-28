@@ -1,20 +1,119 @@
 import mongoose from "mongoose";
 import users from "../Modals/Auth.js";
+import nodemailer from "nodemailer";
 
-export const login = async (req, res) => {
-  const { email, name, image } = req.body;
+// Helper to generate a 6-digit OTP
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+// Nodemailer helper
+const sendEmailOTP = async (email, otp) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.SMTP_EMAIL || "mock_email@gmail.com",
+      pass: process.env.SMTP_PASSWORD || "mock_password",
+    },
+  });
+
+  const mailOptions = {
+    from: `"YourTube 2.0 Auth" <${process.env.SMTP_EMAIL || "mock_email@gmail.com"}>`,
+    to: email,
+    subject: "Your Login OTP for YourTube 2.0",
+    text: `Your OTP for login is ${otp}. It is valid for 5 minutes.`,
+  };
 
   try {
-    const existingUser = await users.findOne({ email });
+    if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
+      console.log("\n====== [SIMULATED EMAIL OTP] ======");
+      console.log(`To: ${email}`);
+      console.log(`OTP: ${otp}`);
+      console.log("===================================\n");
+      return;
+    }
+    await transporter.sendMail(mailOptions);
+  } catch (err) {
+    console.log("Failed to send email OTP, falling back to console:", err.message);
+  }
+};
+
+const sendMobileOTP = (mobile, otp) => {
+  // Simulating Twilio/Fast2SMS
+  console.log("\n====== [SIMULATED MOBILE SMS OTP] ======");
+  console.log(`To Mobile: ${mobile}`);
+  console.log(`OTP: ${otp}`);
+  console.log("========================================\n");
+};
+
+export const login = async (req, res) => {
+  const { email, name, image, state, city, mobile } = req.body;
+
+  try {
+    let existingUser = await users.findOne({ email });
 
     if (!existingUser) {
-      const newUser = await users.create({ email, name, image });
-      return res.status(201).json({ result: newUser });
+      existingUser = await users.create({ email, name, image, state, city });
     } else {
-      return res.status(200).json({ result: existingUser });
+      // Update location if changed
+      if (state || city) {
+        existingUser.state = state || existingUser.state;
+        existingUser.city = city || existingUser.city;
+        await existingUser.save();
+      }
     }
+
+    // Determine OTP type based on region
+    const southStates = ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh", "Telangana"];
+    const isSouthIndia = southStates.includes(existingUser.state);
+    
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes validity
+
+    existingUser.otp = otp;
+    existingUser.otpExpires = otpExpires;
+    await existingUser.save();
+
+    let otpMethod = "email";
+    if (isSouthIndia) {
+      await sendEmailOTP(email, otp);
+    } else {
+      otpMethod = "mobile";
+      await sendMobileOTP(mobile || "Registered Mobile", otp);
+    }
+
+    return res.status(200).json({ 
+      message: "OTP sent successfully", 
+      userId: existingUser._id,
+      otpMethod 
+    });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login init error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+export const verifyOtp = async (req, res) => {
+  const { userId, otp } = req.body;
+  
+  try {
+    const user = await users.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (new Date() > user.otpExpires) {
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // Clear OTP
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    return res.status(200).json({ result: user });
+  } catch (error) {
+    console.error("OTP Verify error:", error);
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
