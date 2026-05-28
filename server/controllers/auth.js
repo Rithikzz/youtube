@@ -80,10 +80,13 @@ export const login = async (req, res) => {
       await sendMobileOTP(mobile || "Registered Mobile", otp);
     }
 
+    const isMock = !process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD;
+
     return res.status(200).json({ 
       message: "OTP sent successfully", 
       userId: existingUser._id,
-      otpMethod 
+      otpMethod,
+      otp: isMock ? otp : undefined
     });
   } catch (error) {
     console.error("Login init error:", error);

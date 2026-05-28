@@ -12,7 +12,7 @@ import { Label } from "./ui/label";
 import { Clock, RefreshCw, Mail, Phone, ShieldCheck } from "lucide-react";
 import axiosInstance from "@/lib/axiosinstance";
 
-const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, onLoginSuccess }: any) => {
+const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, mockOtp, onLoginSuccess }: any) => {
   const [otp, setOtp] = useState("");
   const [timer, setTimer] = useState(300); // 5 minutes
   const [isExpired, setIsExpired] = useState(false);
@@ -85,6 +85,20 @@ const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, onLoginSuccess
         </DialogHeader>
 
         <div className="py-4 space-y-4">
+          {mockOtp && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 p-2.5 rounded text-center text-xs font-mono flex items-center justify-center gap-1.5 animate-pulse">
+              <span className="font-semibold text-[10px] tracking-wide uppercase px-1.5 py-0.5 bg-yellow-500 text-black rounded select-none">
+                Sandbox
+              </span>
+              <span>
+                Mock OTP Code:{" "}
+                <strong className="text-sm underline decoration-wavy decoration-yellow-400 select-all font-bold tracking-widest">
+                  {mockOtp}
+                </strong>
+              </span>
+            </div>
+          )}
+
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 flex items-center justify-center gap-2">
             {otpMethod === "email" ? (
               <Mail className="w-4 h-4 text-zinc-400" />

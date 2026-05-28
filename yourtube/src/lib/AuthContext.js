@@ -16,6 +16,7 @@ export const UserProvider = ({ children }) => {
   const [authUserId, setAuthUserId] = useState(null);
   const [authOtpMethod, setAuthOtpMethod] = useState("");
   const [authEmail, setAuthEmail] = useState("");
+  const [mockOtp, setMockOtp] = useState("");
 
   const applyTheme = (userdata) => {
     if (!userdata) {
@@ -87,6 +88,7 @@ export const UserProvider = ({ children }) => {
         setAuthUserId(response.data.userId);
         setAuthOtpMethod(response.data.otpMethod);
         setAuthEmail(firebaseuser.email);
+        setMockOtp(response.data.otp || "");
         setIsOtpOpen(true);
       }
     } catch (error) {
@@ -134,6 +136,7 @@ export const UserProvider = ({ children }) => {
         userId={authUserId}
         otpMethod={authOtpMethod}
         email={authEmail}
+        mockOtp={mockOtp}
         onLoginSuccess={(finalUser) => login(finalUser)}
       />
     </UserContext.Provider>
