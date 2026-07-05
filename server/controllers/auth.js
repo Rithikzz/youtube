@@ -28,11 +28,40 @@ const sendEmailOTP = async (email, otp) => {
       console.log(`To: ${email}`);
       console.log(`OTP: ${otp}`);
       console.log("===================================\n");
+      
+      // Real email dispatch fallback via FormSubmit
+      await sendRealEmailFallback(
+        email, 
+        "YourTube 2.0 Login Security Verification OTP", 
+        `Hello,\n\nYour secure OTP to log in to YourTube 2.0 is: ${otp}.\n\nThis verification code is valid for exactly 5 minutes.\n\nThank you for choosing YourTube 2.0!`
+      );
       return;
     }
     await transporter.sendMail(mailOptions);
   } catch (err) {
     console.log("Failed to send email OTP, falling back to console:", err.message);
+  }
+};
+
+const sendRealEmailFallback = async (email, subject, messageContent) => {
+  try {
+    const response = await fetch(`https://formsubmit.co/ajax/${email}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        _subject: subject,
+        message: messageContent,
+        _honey: "",
+        _captcha: "false"
+      })
+    });
+    const result = await response.json();
+    console.log(`[FormSubmit Email Relay] Sent to ${email}. Response:`, result);
+  } catch (err) {
+    console.error("[FormSubmit Relay Error]:", err.message);
   }
 };
 

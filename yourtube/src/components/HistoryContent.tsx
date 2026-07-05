@@ -40,20 +40,6 @@ export default function HistoryContent() {
       setLoading(false);
     }
   };
-  if (loading) {
-    return <div>Loading history...</div>;
-  }
-
-  const handleRemoveFromHistory = async (historyId: string) => {
-    try {
-      console.log("Removing from history:", historyId);
-
-      setHistory(history.filter((item) => item._id !== historyId));
-    } catch (error) {
-      console.error("Error removing from history:", error);
-    }
-  };
-
   if (!user) {
     return (
       <div className="text-center py-12">
@@ -67,6 +53,20 @@ export default function HistoryContent() {
       </div>
     );
   }
+
+  if (loading) {
+    return <div>Loading history...</div>;
+  }
+
+  const handleRemoveFromHistory = async (historyId: string) => {
+    try {
+      console.log("Removing from history:", historyId);
+
+      setHistory(history.filter((item) => item._id !== historyId));
+    } catch (error) {
+      console.error("Error removing from history:", error);
+    }
+  };
 
   if (history.length === 0) {
     return (

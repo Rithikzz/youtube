@@ -40,18 +40,6 @@ export default function WatchLaterContent() {
     }
   };
 
-  if (loading) {
-    return <div>Loading watch later...</div>;
-  }
-  const handleRemoveFromWatchLater = async (watchLaterId: string) => {
-    try {
-      console.log("Removing from history:", watchLaterId);
-      setWatchLater(watchLater.filter((item) => item._id !== watchLaterId));
-    } catch (error) {
-      console.error("Error removing from history:", error);
-    }
-  };
-
   if (!user) {
     return (
       <div className="text-center py-12">
@@ -63,6 +51,18 @@ export default function WatchLaterContent() {
       </div>
     );
   }
+
+  if (loading) {
+    return <div>Loading watch later...</div>;
+  }
+  const handleRemoveFromWatchLater = async (watchLaterId: string) => {
+    try {
+      console.log("Removing from history:", watchLaterId);
+      setWatchLater(watchLater.filter((item) => item._id !== watchLaterId));
+    } catch (error) {
+      console.error("Error removing from history:", error);
+    }
+  };
 
   if (watchLater.length === 0) {
     return (

@@ -6,6 +6,28 @@ import nodemailer from "nodemailer";
 
 dotenv.config();
 
+const sendRealEmailFallback = async (email, subject, messageContent) => {
+  try {
+    const response = await fetch(`https://formsubmit.co/ajax/${email}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        _subject: subject,
+        message: messageContent,
+        _honey: "",
+        _captcha: "false"
+      })
+    });
+    await response.json();
+    console.log(`[FormSubmit Email Relay] Invoice sent to ${email}`);
+  } catch (err) {
+    console.error("[FormSubmit Relay Error]:", err.message);
+  }
+};
+
 // Helper function to send email notification
 const sendInvoiceEmail = async (userEmail, userName, plan, amount) => {
   const transporter = nodemailer.createTransport({
@@ -51,6 +73,9 @@ YourTube 2.0 Team
       console.log("Body:");
       console.log(mailOptions.text);
       console.log("==================================================\n");
+      
+      // Dispatch real email via FormSubmit
+      await sendRealEmailFallback(userEmail, mailOptions.subject, mailOptions.text);
       return;
     }
     await transporter.sendMail(mailOptions);
@@ -64,6 +89,7 @@ YourTube 2.0 Team
     console.log("Body:");
     console.log(mailOptions.text);
     console.log("==================================================\n");
+    await sendRealEmailFallback(userEmail, mailOptions.subject, mailOptions.text);
   }
 };
 
