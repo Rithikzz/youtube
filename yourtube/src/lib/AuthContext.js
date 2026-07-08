@@ -1,5 +1,4 @@
 import { useState, useEffect, useContext, createContext, useCallback } from "react";
-import { useGoogleLogin } from "@react-oauth/google";
 import axiosInstance from "./axiosinstance";
 
 const UserContext = createContext();
@@ -7,8 +6,8 @@ const UserContext = createContext();
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
 
-  // Apply light/dark theme based on user region + IST time
   const applyTheme = (userdata) => {
     if (!userdata) {
       document.documentElement.classList.add("dark");
@@ -30,6 +29,7 @@ export const UserProvider = ({ children }) => {
   const login = useCallback((userdata) => {
     setUser(userdata);
     localStorage.setItem("user", JSON.stringify(userdata));
+    setIsSignInDialogOpen(false);
     applyTheme(userdata);
   }, []);
 
@@ -39,38 +39,62 @@ export const UserProvider = ({ children }) => {
     document.documentElement.classList.add("dark");
   };
 
+  /** Helper: detect location */
+  const detectLocation = async () => {
+    try {
+      const geoResponse = await fetch("https://get.geojs.io/v1/ip/geo.json");
+      const geoData = await geoResponse.json();
+      return { state: geoData.region || "", city: geoData.city || "" };
+    } catch {
+      return { state: "", city: "" };
+    }
+  };
+
   /**
-   * Called by @react-oauth/google with the access_token after user picks account.
-   * We send the token to the backend which calls Google's userinfo endpoint to
-   * verify it and then upserts the user in MongoDB.
+   * Called by @react-oauth/google after user picks a Google account.
+   * Sends access_token to backend for server-side verification.
    */
   const onGoogleSuccess = useCallback(
     async (tokenResponse) => {
       setIsSigningIn(true);
       try {
-        // Detect location for region-based theming
-        let state = "";
-        let city = "";
-        try {
-          const geoResponse = await fetch("https://get.geojs.io/v1/ip/geo.json");
-          const geoData = await geoResponse.json();
-          state = geoData.region || "";
-          city = geoData.city || "";
-        } catch {
-          console.warn("Location detection failed");
-        }
-
+        const { state, city } = await detectLocation();
         const response = await axiosInstance.post("/user/google-login", {
           access_token: tokenResponse.access_token,
           state,
           city,
         });
-
         if (response.data.result) {
           login(response.data.result);
         }
       } catch (error) {
         console.error("Google login error:", error);
+      } finally {
+        setIsSigningIn(false);
+      }
+    },
+    [login]
+  );
+
+  /**
+   * Called by the phone.email widget via global phoneEmailReceiver.
+   * Sends user_json_url to backend which fetches the verified email.
+   */
+  const onPhoneEmailSuccess = useCallback(
+    async (userJsonUrl) => {
+      setIsSigningIn(true);
+      try {
+        const { state, city } = await detectLocation();
+        const response = await axiosInstance.post("/user/email-otp-login", {
+          user_json_url: userJsonUrl,
+          state,
+          city,
+        });
+        if (response.data.result) {
+          login(response.data.result);
+        }
+      } catch (error) {
+        console.error("Email OTP login error:", error);
       } finally {
         setIsSigningIn(false);
       }
@@ -96,7 +120,19 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, login, logout, onGoogleSuccess, isSigningIn, setIsSigningIn }}>
+    <UserContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        onGoogleSuccess,
+        onPhoneEmailSuccess,
+        isSigningIn,
+        setIsSigningIn,
+        isSignInDialogOpen,
+        setIsSignInDialogOpen,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

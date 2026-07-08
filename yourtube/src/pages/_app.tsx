@@ -5,6 +5,7 @@ import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { UserProvider } from "../lib/AuthContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import SignInDialog from "@/components/SignInDialog";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -14,6 +15,8 @@ export default function App({ Component, pageProps }: AppProps) {
           <title>Your-Tube Clone</title>
           <Header />
           <Toaster />
+          {/* Global Sign-In dialog — triggered from anywhere via context */}
+          <SignInDialog />
           <div className="flex pb-16 md:pb-0 w-full">
             <Sidebar />
             <div className="flex-1 min-w-0">
