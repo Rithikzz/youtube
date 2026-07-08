@@ -14,7 +14,10 @@ import downloadroutes from "./routes/download.js";
 dotenv.config();
 const app = express();
 import path from "path";
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:3000", "http://10.13.25.46:3000"],
+  credentials: true,
+}));
 app.use((req, res, next) => {
   console.log(`[REQUEST] ${req.method} ${req.url}`);
   next();

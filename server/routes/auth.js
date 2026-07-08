@@ -1,8 +1,12 @@
 import express from "express";
-import { login, updateprofile, verifyOtp } from "../controllers/auth.js";
+import { googleLogin, updateprofile } from "../controllers/auth.js";
+
 const routes = express.Router();
 
-routes.post("/login", login);
-routes.post("/verify-otp", verifyOtp);
+// POST /user/google-login — called after Firebase Google OAuth popup completes
+routes.post("/google-login", googleLogin);
+
+// PATCH /user/update/:id — update channel name / description
 routes.patch("/update/:id", updateprofile);
+
 export default routes;

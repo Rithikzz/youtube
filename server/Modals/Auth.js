@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 const userschema = mongoose.Schema({
-  email: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  googleId: { type: String },          // Firebase UID / Google sub
   name: { type: String },
   channelname: { type: String },
   description: { type: String },
@@ -32,12 +33,6 @@ const userschema = mongoose.Schema({
     enum: ["light", "dark"],
     default: "dark"
   },
-  otp: {
-    type: String
-  },
-  otpExpires: {
-    type: Date
-  }
 });
 
 export default mongoose.model("user", userschema);

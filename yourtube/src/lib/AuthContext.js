@@ -1,42 +1,25 @@
-import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { useState } from "react";
-import { createContext } from "react";
-import { provider, auth } from "./firebase";
+import { useState, useEffect, useContext, createContext, useCallback } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
 import axiosInstance from "./axiosinstance";
-import { useEffect, useContext } from "react";
-import OtpDialogue from "@/components/OtpDialogue";
-import SignInDialogue from "@/components/SignInDialogue";
 
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
-  // OTP State
-  const [isOtpOpen, setIsOtpOpen] = useState(false);
-  const [authUserId, setAuthUserId] = useState(null);
-  const [authOtpMethod, setAuthOtpMethod] = useState("");
-  const [authEmail, setAuthEmail] = useState("");
-  const [mockOtp, setMockOtp] = useState("");
-  const [isSignInOpen, setIsSignInOpen] = useState(false);
-
+  // Apply light/dark theme based on user region + IST time
   const applyTheme = (userdata) => {
     if (!userdata) {
       document.documentElement.classList.add("dark");
       return;
     }
-    
     const southStates = ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh", "Telangana"];
     const isSouthIndia = southStates.includes(userdata.state);
-    
-    // Calculate current IST time
     const now = new Date();
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const istTime = new Date(utcTime + (330 * 60000)); // +5:30
-    
+    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+    const istTime = new Date(utcTime + 330 * 60000);
     const hours = istTime.getHours();
-    
-    // 10 AM to 12 PM IST
     if (isSouthIndia && hours >= 10 && hours <= 12) {
       document.documentElement.classList.remove("dark");
     } else {
@@ -44,108 +27,77 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const login = (userdata) => {
+  const login = useCallback((userdata) => {
     setUser(userdata);
     localStorage.setItem("user", JSON.stringify(userdata));
     applyTheme(userdata);
-  };
-  const logout = async () => {
+  }, []);
+
+  const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Error during sign out:", error);
-    }
+    document.documentElement.classList.add("dark");
   };
-  const handlegooglesignin = async () => {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const firebaseuser = result.user;
-      
-      // Location Detection
-      let state = "";
-      let city = "";
-      try {
-        const geoResponse = await fetch("https://get.geojs.io/v1/ip/geo.json");
-        const geoData = await geoResponse.json();
-        state = geoData.region || "";
-        city = geoData.city || "";
-      } catch (err) {
-        console.warn("Failed to detect location");
-      }
 
-      const payload = {
-        email: firebaseuser.email,
-        name: firebaseuser.displayName,
-        image: firebaseuser.photoURL || "https://github.com/shadcn.png",
-        state,
-        city
-      };
-      
-      const response = await axiosInstance.post("/user/login", payload);
-      
-      if (response.data.userId) {
-        // Trigger OTP Dialogue
-        setAuthUserId(response.data.userId);
-        setAuthOtpMethod(response.data.otpMethod);
-        setAuthEmail(firebaseuser.email);
-        setMockOtp(response.data.otp || "");
-        setIsOtpOpen(true);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  useEffect(() => {
-    const unsubcribe = onAuthStateChanged(auth, async (firebaseuser) => {
-      if (firebaseuser) {
+  /**
+   * Called by @react-oauth/google with the access_token after user picks account.
+   * We send the token to the backend which calls Google's userinfo endpoint to
+   * verify it and then upserts the user in MongoDB.
+   */
+  const onGoogleSuccess = useCallback(
+    async (tokenResponse) => {
+      setIsSigningIn(true);
+      try {
+        // Detect location for region-based theming
+        let state = "";
+        let city = "";
         try {
-          const payload = {
-            email: firebaseuser.email,
-            name: firebaseuser.displayName,
-            image: firebaseuser.photoURL || "https://github.com/shadcn.png",
-          };
-          // Don't auto-login if they aren't verified by OTP, 
-          // but since Firebase persists session, we can skip OTP for returning sessions 
-          // if we had a persistent backend session. For this context, if they refresh, 
-          // we should just show them logged out so they do the OTP flow again, OR we bypass for ease.
-          // Let's bypass OTP on refresh if they are already in local storage.
-          const storedUser = localStorage.getItem("user");
-          if (storedUser) {
-             const parsed = JSON.parse(storedUser);
-             login(parsed);
-          } else {
-             logout();
-          }
-        } catch (error) {
-          console.error(error);
-          logout();
+          const geoResponse = await fetch("https://get.geojs.io/v1/ip/geo.json");
+          const geoData = await geoResponse.json();
+          state = geoData.region || "";
+          city = geoData.city || "";
+        } catch {
+          console.warn("Location detection failed");
         }
-      } else {
-         applyTheme(null); // default to dark
+
+        const response = await axiosInstance.post("/user/google-login", {
+          access_token: tokenResponse.access_token,
+          state,
+          city,
+        });
+
+        if (response.data.result) {
+          login(response.data.result);
+        }
+      } catch (error) {
+        console.error("Google login error:", error);
+      } finally {
+        setIsSigningIn(false);
       }
-    });
-    return () => unsubcribe();
+    },
+    [login]
+  );
+
+  // Restore session from localStorage on page load
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
+        applyTheme(parsed);
+      } catch {
+        localStorage.removeItem("user");
+        applyTheme(null);
+      }
+    } else {
+      applyTheme(null);
+    }
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, login, logout, handlegooglesignin, isSignInOpen, setIsSignInOpen }}>
+    <UserContext.Provider value={{ user, login, logout, onGoogleSuccess, isSigningIn, setIsSigningIn }}>
       {children}
-      <OtpDialogue
-        isopen={isOtpOpen}
-        onclose={() => setIsOtpOpen(false)}
-        userId={authUserId}
-        otpMethod={authOtpMethod}
-        email={authEmail}
-        mockOtp={mockOtp}
-        onLoginSuccess={(finalUser) => login(finalUser)}
-      />
-      <SignInDialogue
-        isopen={isSignInOpen}
-        onclose={() => setIsSignInOpen(false)}
-        onLoginSuccess={(finalUser) => login(finalUser)}
-      />
     </UserContext.Provider>
   );
 };
