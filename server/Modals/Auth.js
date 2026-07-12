@@ -33,6 +33,10 @@ const userschema = mongoose.Schema({
     enum: ["light", "dark"],
     default: "dark"
   },
+  phone: {
+    type: String,
+    default: ""
+  },
 });
 
 export default mongoose.model("user", userschema);

@@ -5,6 +5,7 @@ import axiosInstance from "@/lib/axiosinstance";
 const Videogrid = () => {
   const [videos, setvideo] = useState<any[]>([]);
   const [loading, setloading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   useEffect(() => {
     const fetchvideo = async () => {
       try {
@@ -13,6 +14,7 @@ const Videogrid = () => {
       } catch (error) {
         console.log(error);
         setvideo([]);
+        setLoadError(true);
       } finally {
         setloading(false);
       }
@@ -52,6 +54,10 @@ const Videogrid = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {loading ? (
         <>Loading..</>
+      ) : loadError ? (
+        <div className="col-span-full text-center text-gray-600">
+          Videos are temporarily unavailable. Please try again shortly.
+        </div>
       ) : videos.length === 0 ? (
         <div className="col-span-full text-center text-gray-600">
           No videos available.

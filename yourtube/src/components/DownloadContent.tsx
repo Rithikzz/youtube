@@ -69,7 +69,7 @@ export default function DownloadContent() {
             <Link href={`/watch/${item.video._id}`} className="flex-shrink-0">
               <div className="relative w-40 aspect-video bg-gray-100 rounded overflow-hidden">
                 <video
-                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/${item.video?.filepath}`}
+                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/video/serve/${item.video?._id}`}
                   className="object-cover group-hover:scale-105 transition-transform duration-200"
                 />
               </div>
@@ -89,7 +89,7 @@ export default function DownloadContent() {
               </p>
             </div>
             <a
-              href={`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/${item.video?.filepath}`}
+              href={`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/download/file/${item.video?._id}?userId=${user._id}`}
               download={item.video?.filename || "video.mp4"}
             >
               <Button variant="ghost" size="icon">

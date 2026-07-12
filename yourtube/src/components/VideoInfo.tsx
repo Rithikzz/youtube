@@ -13,6 +13,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
+import { toast } from "sonner";
 import Link from "next/link";
 
 const VideoInfo = ({ video }: any) => {
@@ -23,6 +24,25 @@ const VideoInfo = ({ video }: any) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const { user, login } = useUser();
   const [isWatchLater, setIsWatchLater] = useState(false);
+  const [subscribedChannels, setSubscribedChannels] = useState<string[]>([]);
+
+  useEffect(() => {
+    const subs = JSON.parse(localStorage.getItem("yourtube_subscriptions") || "[]");
+    setSubscribedChannels(subs);
+  }, [video]);
+
+  const isSubscribed = subscribedChannels.includes(video.videochanel);
+
+  const handleSubscribe = () => {
+    let updated;
+    if (isSubscribed) {
+      updated = subscribedChannels.filter((c) => c !== video.videochanel);
+    } else {
+      updated = [...subscribedChannels, video.videochanel];
+    }
+    setSubscribedChannels(updated);
+    localStorage.setItem("yourtube_subscriptions", JSON.stringify(updated));
+  };
 
   // const user: any = {
   //   id: "1",
@@ -126,21 +146,20 @@ const VideoInfo = ({ video }: any) => {
         login(res.data.user);
       }
 
-      const downloadUrl = `http://localhost:5000/${video.filepath}`;
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = video.filename || "video.mp4";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+      const downloadUrl = `${backendUrl}/download/file/${video._id}?userId=${user._id}`;
 
-      alert("Download started!");
+      window.open(downloadUrl, "_blank");
+
+      toast.success("Download started!");
     } catch (error: any) {
       if (error.response?.status === 403) {
-        alert("Free limit exceeded. Upgrade to Premium for unlimited downloads.");
+        toast.error("Daily download limit reached. Upgrade to Premium for unlimited downloads.");
+      } else if (error.response?.status === 404) {
+        toast.error("Video file not found on server.");
       } else {
         console.log(error);
-        alert("Download failed.");
+        toast.error("Download failed. Please try again.");
       }
     }
   };
@@ -158,7 +177,16 @@ const VideoInfo = ({ video }: any) => {
             <h3 className="font-medium">{video.videochanel}</h3>
             <p className="text-sm text-gray-600">1.2M subscribers</p>
           </div>
-          <Button className="ml-4">Subscribe</Button>
+          <Button
+            onClick={handleSubscribe}
+            className={`ml-4 rounded-full font-semibold transition ${
+              isSubscribed
+                ? "bg-zinc-200 text-zinc-800 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-200"
+                : "bg-red-600 hover:bg-red-700 text-white"
+            }`}
+          >
+            {isSubscribed ? "Subscribed" : "Subscribe"}
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-gray-100 rounded-full">

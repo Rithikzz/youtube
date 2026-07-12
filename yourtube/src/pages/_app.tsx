@@ -8,8 +8,16 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import SignInDialog from "@/components/SignInDialog";
 
 export default function App({ Component, pageProps }: AppProps) {
+  // A missing Vercel environment variable used to crash the entire application
+  // during hydration because GoogleOAuthProvider rejects an empty client ID.
+  // Keep the shell available and make the sign-in control fail gracefully until
+  // a real Google client ID is configured.
+  const googleClientId =
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+    "missing-google-client-id.apps.googleusercontent.com";
+
   return (
-    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+    <GoogleOAuthProvider clientId={googleClientId}>
       <UserProvider>
         <div className="min-h-screen bg-white text-black">
           <title>Your-Tube Clone</title>

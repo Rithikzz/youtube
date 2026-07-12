@@ -7,130 +7,75 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { Crown, Sparkles, ShieldCheck, Phone, CheckCircle, RefreshCw, Clock } from "lucide-react";
+import { Crown, Smartphone, CheckCircle, Copy } from "lucide-react";
 import axiosInstance from "@/lib/axiosinstance";
+import QRCode from "react-qr-code";
 
 const PaymentDialogue = ({ isopen, onclose, user, onsuccess, plan }: any) => {
-  const [step, setStep] = useState(1); // 1: Phone Input, 2: OTP Verification
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState("");
-  const [generatedOtp, setGeneratedOtp] = useState("");
-  const [timer, setTimer] = useState(60);
-  const [isExpired, setIsExpired] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [otpNotification, setOtpNotification] = useState("");
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   // Plan Details dynamic helper
   const getPlanDetails = () => {
     switch (plan) {
       case "bronze":
-        return { title: "Bronze Plan", price: "₹10.00", limit: "7 minutes", color: "text-amber-600" };
+        return { title: "Bronze Plan", priceAmount: "10.00", price: "₹10.00", color: "text-amber-600" };
       case "silver":
-        return { title: "Silver Plan", price: "₹50.00", limit: "10 minutes", color: "text-zinc-300" };
+        return { title: "Silver Plan", priceAmount: "50.00", price: "₹50.00", color: "text-zinc-300" };
       case "gold":
-        return { title: "Gold Plan", price: "₹100.00", limit: "Unlimited Watch Time", color: "text-yellow-500" };
+        return { title: "Gold Plan", priceAmount: "100.00", price: "₹100.00", color: "text-yellow-500" };
       default:
-        return { title: "Premium Lifetime", price: "₹199.00", limit: "Unlimited Watch Time", color: "text-yellow-500" };
+        return { title: "Premium Lifetime", priceAmount: "199.00", price: "₹199.00", color: "text-yellow-500" };
     }
   };
 
   const planDetails = getPlanDetails();
 
-  // Countdown timer for 1-minute OTP validity
-  useEffect(() => {
-    let interval: any;
-    if (step === 2 && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (timer === 0) {
-      setIsExpired(true);
-    }
-    return () => clearInterval(interval);
-  }, [step, timer]);
+  const upiId = "sankarrithik5-1@okaxis";
+  const payeeName = "Rithik S";
+  // Dynamic UPI Link with pre-filled amount
+  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${planDetails.priceAmount}&cu=INR`;
 
-  const handleSendOtp = () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
-      setError("Please enter a valid 10-digit phone number");
-      return;
-    }
-    setError("");
-    
-    // Generate a random 6-digit OTP
-    const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(mockOtp);
-    setTimer(60);
-    setIsExpired(false);
-    setStep(2);
-    
-    // Show a beautiful simulated notification banner
-    setOtpNotification(`[SMS SIMULATOR] OTP sent to +91 ${phoneNumber}: ${mockOtp}`);
+  const copyUpiId = () => {
+    navigator.clipboard.writeText(upiId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleResendOtp = () => {
-    const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(mockOtp);
-    setTimer(60);
-    setIsExpired(false);
-    setOtp("");
-    setError("");
-    setOtpNotification(`[SMS SIMULATOR] New OTP sent to +91 ${phoneNumber}: ${mockOtp}`);
-  };
-
-  const handleVerifyOtpAndPay = async () => {
-    if (isExpired) {
-      setError("OTP has expired! Please click Resend OTP.");
-      return;
-    }
-    if (otp !== generatedOtp) {
-      setError("Invalid OTP! Please try again.");
-      return;
-    }
-
+  const handleVerifyPayment = async () => {
     setIsSubmitting(true);
     setError("");
-    try {
-      const response = await axiosInstance.post("/payment/verify", {
-        razorpay_order_id: `order_mock_${Date.now()}`,
-        razorpay_payment_id: `pay_mock_${Date.now()}`,
-        razorpay_signature: "mock_signature",
-        userId: user._id,
-        plan: plan || "gold",
-      });
+    
+    // Simulate a brief verification delay
+    setTimeout(async () => {
+      try {
+        const response = await axiosInstance.post("/payment/verify", {
+          // Use a mock order ID so the backend bypasses Razorpay signature verification
+          razorpay_order_id: `order_mock_upi_${Date.now()}`,
+          razorpay_payment_id: `pay_upi_${Date.now()}`,
+          razorpay_signature: "upi_signature",
+          userId: user._id,
+          plan: plan || "gold",
+        });
 
-      if (response.data.user) {
-        onsuccess(response.data.user);
-        alert(`Payment & OTP Verified Successfully! Activated ${planDetails.title}.`);
-        // Reset fields
-        setStep(1);
-        setPhoneNumber("");
-        setOtp("");
-        onclose();
+        if (response.data.user) {
+          onsuccess(response.data.user);
+          alert(`Payment Verified Successfully! Activated ${planDetails.title}.`);
+          onclose();
+        }
+      } catch (err) {
+        console.error("Verification error:", err);
+        setError("Failed to verify payment. Please contact support if money was deducted.");
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      console.error("Simulation error:", error);
-      setError("Failed to verify simulated payment.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+    }, 2000);
   };
 
   return (
     <Dialog open={isopen} onOpenChange={() => {
-      setStep(1);
-      setPhoneNumber("");
-      setOtp("");
       setError("");
-      setOtpNotification("");
       onclose();
     }}>
       <DialogContent className="sm:max-w-md bg-zinc-950 text-white border-yellow-500/30">
@@ -142,75 +87,47 @@ const PaymentDialogue = ({ isopen, onclose, user, onsuccess, plan }: any) => {
             Upgrade Plan Checkout
           </DialogTitle>
           <p className="text-xs text-zinc-400 mt-1">
-            Simulated Checkout with SMS OTP Verification
+            Pay securely directly via UPI
           </p>
         </DialogHeader>
 
-        {otpNotification && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded p-2 text-xs text-yellow-400 text-center font-mono animate-bounce mt-2">
-            {otpNotification}
-          </div>
-        )}
-
-        <div className="py-4 space-y-4">
+        <div className="py-4 space-y-5">
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 space-y-2">
-            <div className="flex justify-between items-center text-xs text-zinc-400">
+            <div className="flex justify-between items-center text-sm text-zinc-400">
               <span>Subscription Plan</span>
-              <span className={`font-semibold ${planDetails.color}`}>{planDetails.title}</span>
+              <span className={`font-bold ${planDetails.color}`}>{planDetails.title}</span>
             </div>
-            <div className="flex justify-between items-center text-xs text-zinc-400">
+            <div className="flex justify-between items-center text-sm text-zinc-400">
               <span>Amount</span>
-              <span className="font-bold text-white">{planDetails.price}</span>
+              <span className="font-bold text-white text-lg">{planDetails.price}</span>
             </div>
           </div>
 
-          {step === 1 ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-xs text-zinc-400 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5" /> Enter Phone Number for OTP
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-zinc-500 text-sm font-medium">+91</span>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="9876543210"
-                    maxLength={10}
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
-                    className="pl-12 bg-zinc-900 border-zinc-800 text-white placeholder-zinc-600 focus:border-yellow-500 focus:ring-yellow-500"
-                  />
-                </div>
-              </div>
-              {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
+          <div className="flex flex-col items-center space-y-4">
+            <div className="bg-white p-3 rounded-xl">
+              <QRCode value={upiLink} size={160} />
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="otp" className="text-xs text-zinc-400 flex items-center gap-1.5">
-                    <CheckCircle className="w-3.5 h-3.5" /> Enter 6-digit OTP
-                  </Label>
-                  <span className={`text-xs font-mono flex items-center gap-1 ${isExpired ? "text-red-500" : "text-yellow-500"}`}>
-                    <Clock className="w-3 h-3" />
-                    {isExpired ? "Expired" : formatTime(timer)}
-                  </span>
-                </div>
-                <Input
-                  id="otp"
-                  type="text"
-                  placeholder="******"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  disabled={isExpired}
-                  className="bg-zinc-900 border-zinc-800 text-center tracking-widest text-lg font-bold text-white focus:border-yellow-500 focus:ring-yellow-500"
-                />
-              </div>
-              {error && <p className="text-xs text-red-500 font-medium text-center">{error}</p>}
+            <p className="text-xs text-zinc-400 text-center">
+              Scan with any UPI app (GPay, PhonePe, Paytm)
+            </p>
+
+            <div className="flex items-center gap-2 bg-zinc-900 px-4 py-2 rounded-lg border border-zinc-800">
+              <span className="text-sm font-medium text-zinc-300">{upiId}</span>
+              <button onClick={copyUpiId} className="text-zinc-400 hover:text-white transition">
+                {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+              </button>
             </div>
-          )}
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <a href={upiLink} className="w-full block md:hidden">
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+                <Smartphone className="w-4 h-4 mr-2" /> Pay with UPI App
+              </Button>
+            </a>
+            
+            {error && <p className="text-xs text-red-500 font-medium text-center">{error}</p>}
+          </div>
         </div>
 
         <DialogFooter className="flex sm:flex-row gap-2 sm:justify-between items-center">
@@ -218,48 +135,22 @@ const PaymentDialogue = ({ isopen, onclose, user, onsuccess, plan }: any) => {
             type="button"
             variant="ghost"
             onClick={() => {
-              setStep(1);
-              setPhoneNumber("");
-              setOtp("");
               setError("");
-              setOtpNotification("");
               onclose();
             }}
-            className="text-zinc-400 hover:text-white hover:bg-zinc-900 text-xs"
+            className="text-zinc-400 hover:text-white hover:bg-zinc-900 text-xs w-full sm:w-auto"
           >
             Cancel
           </Button>
 
-          {step === 1 ? (
-            <Button
-              type="button"
-              onClick={handleSendOtp}
-              className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold text-xs border-none shadow-md shadow-yellow-500/10"
-            >
-              Send Verification OTP
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              {isExpired && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleResendOtp}
-                  className="border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 text-xs flex items-center gap-1"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> Resend
-                </Button>
-              )}
-              <Button
-                type="button"
-                onClick={handleVerifyOtpAndPay}
-                disabled={isSubmitting || otp.length !== 6}
-                className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold text-xs border-none shadow-md shadow-yellow-500/10"
-              >
-                {isSubmitting ? "Verifying..." : `Confirm & Pay (${planDetails.price})`}
-              </Button>
-            </div>
-          )}
+          <Button
+            type="button"
+            onClick={handleVerifyPayment}
+            disabled={isSubmitting}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-sm border-none shadow-md shadow-yellow-500/10 w-full sm:w-auto px-8"
+          >
+            {isSubmitting ? "Verifying Payment..." : "I've Paid"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,7 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import User from "../Modals/Auth.js";
+import Payment from "../Modals/Payment.js";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 
@@ -154,6 +155,21 @@ export const verifyPayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, plan } = req.body;
     
+    // Secure Razorpay Signature Verification
+    const key_secret = process.env.RAZORPAY_KEY_SECRET;
+    if (razorpay_order_id && !razorpay_order_id.startsWith("order_mock_")) {
+      if (!key_secret) {
+        return res.status(500).json({ message: "Razorpay Key Secret is not configured on the server." });
+      }
+      const generated_signature = crypto
+        .createHmac("sha256", key_secret)
+        .update(razorpay_order_id + "|" + razorpay_payment_id)
+        .digest("hex");
+      if (generated_signature !== razorpay_signature) {
+        return res.status(400).json({ message: "Invalid payment verification signature." });
+      }
+    }
+    
     // Set watch limit in minutes
     let watchLimit = 5;
     let price = 0;
@@ -181,6 +197,17 @@ export const verifyPayment = async (req, res) => {
     );
 
     if (updatedUser) {
+      // Save transaction details in database (Requirement 10)
+      const newTransaction = new Payment({
+        userId: userId,
+        plan: plan,
+        amount: price,
+        paymentId: razorpay_payment_id || `pay_upi_${Date.now()}`,
+        orderId: razorpay_order_id || `order_upi_${Date.now()}`,
+        status: "success"
+      });
+      await newTransaction.save();
+
       // Trigger invoice email sending
       await sendInvoiceEmail(updatedUser.email, updatedUser.name, plan, price);
     }

@@ -7,7 +7,8 @@ import {
   History,
   User,
   Download,
-  Crown
+  Crown,
+  Video
 } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
@@ -43,6 +44,12 @@ const Sidebar = () => {
             <Button variant="ghost" className="w-full justify-start">
               <PlaySquare className="w-5 h-5 mr-3" />
               Subscriptions
+            </Button>
+          </Link>
+          <Link href="/call">
+            <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
+              <Video className="w-5 h-5 mr-3" />
+              Start a Call
             </Button>
           </Link>
 
@@ -126,6 +133,10 @@ const Sidebar = () => {
         <Link href="/explore" className="flex flex-col items-center justify-center flex-1 py-0.5 text-gray-600 hover:text-red-600">
           <Compass className="w-5 h-5" />
           <span className="text-[9px] mt-0.5 font-medium">Explore</span>
+        </Link>
+        <Link href="/call" className="flex flex-col items-center justify-center flex-1 py-0.5 text-red-600">
+          <Video className="w-5 h-5" />
+          <span className="text-[9px] mt-0.5 font-medium">Call</span>
         </Link>
         {user ? (
           <>

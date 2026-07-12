@@ -1,0 +1,8 @@
+node_modules
+.env
+.env.*
+.vercel/
+env.test.mjs
+.DS_Store
+dist/
+build/

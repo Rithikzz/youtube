@@ -12,12 +12,22 @@ import { Label } from "./ui/label";
 import { Clock, RefreshCw, Mail, Phone, ShieldCheck } from "lucide-react";
 import axiosInstance from "@/lib/axiosinstance";
 
-const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, mockOtp, onLoginSuccess }: any) => {
+const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, phone, mockOtp, onLoginSuccess }: any) => {
   const [otp, setOtp] = useState("");
-  const [timer, setTimer] = useState(300); // 5 minutes
+  const [timer, setTimer] = useState(300);
   const [isExpired, setIsExpired] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+
+  useEffect(() => {
+    if (isopen) {
+      setTimer(300);
+      setIsExpired(false);
+      setOtp("");
+      setError("");
+    }
+  }, [isopen, userId]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -33,14 +43,14 @@ const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, mockOtp, onLog
 
   const handleVerifyOtp = async () => {
     if (isExpired) {
-      setError("OTP has expired! Please close and try logging in again.");
+      setError("OTP has expired! Please request a new one.");
       return;
     }
     if (otp.length !== 6) {
       setError("Please enter a valid 6-digit OTP");
       return;
     }
-    
+
     setIsSubmitting(true);
     setError("");
     try {
@@ -51,7 +61,6 @@ const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, mockOtp, onLog
 
       if (response.data.result) {
         onLoginSuccess(response.data.result);
-        alert("OTP Verified Successfully! Welcome back.");
         setOtp("");
         onclose();
       }
@@ -60,6 +69,25 @@ const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, mockOtp, onLog
       setError(err.response?.data?.message || "Invalid OTP. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsResending(true);
+    setError("");
+    setOtp("");
+    setTimer(300);
+    setIsExpired(false);
+    try {
+      const body: any = { userId, method: otpMethod };
+      if (otpMethod === "phone" && phone) {
+        body.phone = phone;
+      }
+      await axiosInstance.post("/user/send-otp", body);
+    } catch (err) {
+      setError("Failed to resend OTP. Please try again.");
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -91,7 +119,7 @@ const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, mockOtp, onLog
                 Sandbox
               </span>
               <span>
-                Mock OTP Code:{" "}
+                Dev OTP:{" "}
                 <strong className="text-sm underline decoration-wavy decoration-yellow-400 select-all font-bold tracking-widest">
                   {mockOtp}
                 </strong>
@@ -106,7 +134,7 @@ const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, mockOtp, onLog
               <Phone className="w-4 h-4 text-zinc-400" />
             )}
             <span className="text-sm text-zinc-300 font-medium">
-              {otpMethod === "email" ? email : "Registered Device"}
+              {otpMethod === "email" ? email || "Registered Email" : phone || "Registered Mobile"}
             </span>
           </div>
 
@@ -129,6 +157,18 @@ const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, mockOtp, onLog
               className="bg-zinc-900 border-zinc-800 text-center tracking-widest text-lg font-bold text-white focus:border-yellow-500 focus:ring-yellow-500"
             />
           </div>
+
+          {isExpired && (
+            <button
+              onClick={handleResendOtp}
+              disabled={isResending}
+              className="w-full flex items-center justify-center gap-1.5 text-xs text-yellow-500 hover:text-yellow-400 transition-colors"
+            >
+              <RefreshCw className={`w-3 h-3 ${isResending ? "animate-spin" : ""}`} />
+              {isResending ? "Resending..." : "Resend OTP"}
+            </button>
+          )}
+
           {error && <p className="text-xs text-red-500 font-medium text-center">{error}</p>}
         </div>
 
@@ -144,7 +184,7 @@ const OtpDialogue = ({ isopen, onclose, userId, otpMethod, email, mockOtp, onLog
           <Button
             type="button"
             onClick={handleVerifyOtp}
-            disabled={isSubmitting || otp.length !== 6}
+            disabled={isSubmitting || otp.length !== 6 || isExpired}
             className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold text-xs border-none w-full sm:w-auto"
           >
             {isSubmitting ? "Verifying..." : "Verify & Secure Login"}
