@@ -57,8 +57,8 @@ const WatchPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto p-0 md:p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 md:gap-6">
           {/* Main column */}
           <div className="lg:col-span-2 space-y-4">
             <Videopplayer
@@ -66,16 +66,18 @@ const WatchPage = () => {
               allVideos={allVideos}
               onOpenComments={handleOpenComments}
             />
-            <VideoInfo video={videos} />
+            <div className="px-4 md:px-0">
+              <VideoInfo video={videos} />
+            </div>
 
             {/* Comments — always mounted, scrolled into view on gesture */}
-            <div ref={commentsRef}>
+            <div ref={commentsRef} className="px-4 md:px-0">
               <Comments videoId={id} />
             </div>
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-4">
+          <div className="space-y-4 px-4 md:px-0 pb-16 md:pb-0">
             <RelatedVideos videos={allVideos.filter((v: any) => v._id !== id)} />
           </div>
         </div>

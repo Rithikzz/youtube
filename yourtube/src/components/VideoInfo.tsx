@@ -168,18 +168,20 @@ const VideoInfo = ({ video }: any) => {
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">{video.videotitle}</h1>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Avatar className="w-10 h-10">
-            <AvatarFallback>{video.videochanel[0]}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="font-medium">{video.videochanel}</h3>
-            <p className="text-sm text-gray-600">1.2M subscribers</p>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center justify-between w-full lg:w-auto gap-4">
+          <div className="flex items-center gap-3">
+            <Avatar className="w-10 h-10">
+              <AvatarFallback>{video.videochanel[0]}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="font-medium truncate max-w-[120px] sm:max-w-xs">{video.videochanel}</h3>
+              <p className="text-xs sm:text-sm text-gray-600">1.2M subscribers</p>
+            </div>
           </div>
           <Button
             onClick={handleSubscribe}
-            className={`ml-4 rounded-full font-semibold transition ${
+            className={`rounded-full font-semibold transition ${
               isSubscribed
                 ? "bg-zinc-200 text-zinc-800 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-200"
                 : "bg-red-600 hover:bg-red-700 text-white"
@@ -188,8 +190,8 @@ const VideoInfo = ({ video }: any) => {
             {isSubscribed ? "Subscribed" : "Subscribe"}
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-gray-100 rounded-full">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex items-center bg-gray-100 rounded-full shrink-0">
             <Button
               variant="ghost"
               size="sm"
@@ -197,7 +199,7 @@ const VideoInfo = ({ video }: any) => {
               onClick={handleLike}
             >
               <ThumbsUp
-                className={`w-5 h-5 mr-2 ${
+                className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 ${
                   isLiked ? "fill-black text-black" : ""
                 }`}
               />
@@ -211,7 +213,7 @@ const VideoInfo = ({ video }: any) => {
               onClick={handleDislike}
             >
               <ThumbsDown
-                className={`w-5 h-5 mr-2 ${
+                className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 ${
                   isDisliked ? "fill-black text-black" : ""
                 }`}
               />
@@ -221,33 +223,33 @@ const VideoInfo = ({ video }: any) => {
           <Button
             variant="ghost"
             size="sm"
-            className={`bg-gray-100 rounded-full ${
+            className={`bg-gray-100 rounded-full shrink-0 ${
               isWatchLater ? "text-primary" : ""
             }`}
             onClick={handleWatchLater}
           >
-            <Clock className="w-5 h-5 mr-2" />
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             {isWatchLater ? "Saved" : "Watch Later"}
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="bg-gray-100 rounded-full"
+            className="bg-gray-100 rounded-full shrink-0"
           >
-            <Share className="w-5 h-5 mr-2" />
+            <Share className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Share
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="bg-gray-100 rounded-full"
+            className="bg-gray-100 rounded-full shrink-0"
             onClick={handleDownloadBtn}
           >
-            <Download className="w-5 h-5 mr-2" />
+            <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Download
           </Button>
           {!user?.isPremium && (
-            <Link href="/upgrade">
+            <Link href="/upgrade" className="shrink-0">
               <Button
                 variant="default"
                 size="sm"
@@ -261,9 +263,9 @@ const VideoInfo = ({ video }: any) => {
           <Button
             variant="ghost"
             size="icon"
-            className="bg-gray-100 rounded-full"
+            className="bg-gray-100 rounded-full shrink-0 min-w-[36px]"
           >
-            <MoreHorizontal className="w-5 h-5" />
+            <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
       </div>
